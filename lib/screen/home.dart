@@ -18,6 +18,9 @@ class _HomeState extends State<Home> {
   final _flutterHwpLibPlugin = FlutterHwpLib();
 
   Future<void> pickFile() async {
+    selectedFile = null;
+    fileContent = '';
+
     FilePickerResult? result = await FilePicker.platform.pickFiles(
       type: FileType.custom, // 사용자 지정 파일 형식 사용
       allowedExtensions: ['txt', 'hwp', 'doc', 'docx'], // 허용할 파일 확장자

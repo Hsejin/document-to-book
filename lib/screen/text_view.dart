@@ -18,7 +18,7 @@ class _TextViewState extends State<TextView> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     screenWidth = MediaQuery.of(context).size.width;
-    screenHeight = MediaQuery.of(context).size.height * 0.7;
+    screenHeight = MediaQuery.of(context).size.height;
 
     // 처음에 텍스트를 페이지로 나누기
     _splitTextIntoPages();
@@ -31,22 +31,25 @@ class _TextViewState extends State<TextView> {
     String currentPage = '';
     final textPainter = TextPainter(
       textDirection: TextDirection.ltr,
+      textAlign: TextAlign.start,  // 줄바꿈에 영향 줄 수 있는 부분
       text: TextSpan(style: TextStyle(fontSize: fontSize), text: ''),
     );
 
-    for (var word in content.split(' ')) {
+    for (var word in content.split(RegExp(r'\s+'))) {
       // 현재 페이지에 단어를 추가해봅니다.
       String potentialPage = currentPage.isEmpty ? word : '$currentPage $word';
       textPainter.text = TextSpan(style: TextStyle(fontSize: fontSize), text: potentialPage);
       textPainter.layout(maxWidth: screenWidth);
 
       // 현재 제작중인 페이지 높이가 실제 폰화면 높이보다 작으면 계속 추가
-      if (textPainter.size.height < screenHeight) {
+      if (textPainter.height <= screenHeight * 0.6) {
         currentPage = potentialPage;
       } else {
         // 현재 페이지가 꽉 차면 페이지 리스트에 추가하고 새로운 페이지 시작
         tempPages.add(currentPage);
         currentPage = word; // 새로운 페이지는 현재 단어로 시작
+        textPainter.text = TextSpan(style: TextStyle(fontSize: fontSize), text: currentPage);
+        textPainter.layout(maxWidth: screenWidth);
       }
     }
 
@@ -72,16 +75,22 @@ class _TextViewState extends State<TextView> {
                 context: context,
                 builder: (BuildContext context) {
               return Container(
-                height: screenHeight*0.2, // 원하는 높이 설정
+                height: screenHeight*0.15, // 원하는 높이 설정
                 child: SingleChildScrollView(
                   child: Column(
                     children: [
                       ListTile(
                         leading: Icon(Icons.settings),
                         title: Text('글씨 설정'),
-                        onTap: () {
+                        onTap: () async {
                           // 설정 클릭 시 동작
-                          Navigator.push(context, MaterialPageRoute(builder: (_)=>FontsizeSettingPage())); // 폰트설정 페이지로 이동
+                          final updatedFontSize = await Navigator.push(context, MaterialPageRoute(builder: (_)=>FontsizeSettingPage())); // 폰트설정 페이지로 이동
+                          if (updatedFontSize != null) {
+                            setState(() {
+                              fontSize = updatedFontSize; // 새 폰트 사이즈 반영
+                              _splitTextIntoPages(); // 페이지를 다시 나눔
+                            });
+                          }
                         },
                       ),
                       ListTile(
@@ -110,12 +119,10 @@ class _TextViewState extends State<TextView> {
         itemCount: pages.length,
         itemBuilder: (context, index) {
           return Padding(
-            padding: const EdgeInsets.all(10.0), // 여백 조정
-            child: SingleChildScrollView(
-              child: Text(
-                pages[index],
-                style: TextStyle(fontSize: fontSize),
-              ),
+            padding: const EdgeInsets.all(16.0), // 여백 조정
+            child: Text(
+              pages[index],
+              style: TextStyle(fontSize: fontSize),
             ),
           );
         },
